@@ -48,14 +48,19 @@
 
 ; project.godot [autoload]: GameState="*res://src/autoload/game_state.gd"
 ; The leading ``*`` marks the singleton as enabled; the resolver strips it.
+;
+; @import.statement is the property rather than the enclosing section: the
+; parser dedupes imports by raw statement text, and a project declaring a
+; dozen autoloads has a dozen properties inside ONE section. Anchoring on the
+; section collapsed them all to whichever came first.
 (section
   (identifier) @_section
   (property
     (path)
     (string) @import.module
-  )
+  ) @import.statement
   (#eq? @_section "autoload")
-) @import.statement
+)
 
 ; project.godot [application]: run/main_scene="res://scenes/main.tscn"
 ;
@@ -66,10 +71,10 @@
   (property
     (path) @_key
     (string) @import.module
-  )
+  ) @import.statement
   (#eq? @_section "application")
   (#eq? @_key "run/main_scene")
-) @import.statement
+)
 
 ; ---------------------------------------------------------------------------
 ; Calls
