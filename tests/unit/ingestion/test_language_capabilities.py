@@ -134,6 +134,12 @@ _FULL = {
     # dart promoted with the tree-sitter grammar (the regex tier stays as
     # the no-grammar fallback).
     "dart",
+    # ``res://`` is project-root absolute and every Godot load takes a
+    # string literal, so resolution is a prefix swap and a path lookup —
+    # no search paths, no heuristics. Scene and resource files resolve
+    # their [ext_resource] paths through the very same rule.
+    "gdscript",
+    "godot_resource",
     "go",
     "java",
     "javascript",
