@@ -908,7 +908,12 @@ class ASTParser:
                 continue
 
             site_node = site_nodes[0]
-            target_name = _node_text(target_nodes[0], src).strip()
+            # Quotes are stripped for the same reason _extract_imports strips
+            # them: in a data format the call target is a string literal — a
+            # Godot scene's ``[connection … method="_on_died"]`` — and the
+            # quotes are not part of the name. No AST language captures a
+            # string as @call.target, so this is inert for all of them.
+            target_name = _node_text(target_nodes[0], src).strip().strip("\"'")
             if not target_name:
                 continue
 

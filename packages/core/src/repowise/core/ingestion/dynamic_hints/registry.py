@@ -28,6 +28,7 @@ from .cpp import CppDynamicHints
 from .django import DjangoDynamicHints
 from .dotnet import DotNetDynamicHints
 from .go import GoDynamicHints
+from .godot import GodotDynamicHints
 from .jvm import JvmDynamicHints
 from .luau import LuauDynamicHints
 from .node import NodeDynamicHints
@@ -73,6 +74,7 @@ class HintRegistry:
             CDynamicHints(),
             CppDynamicHints(),
             LuauDynamicHints(),
+            GodotDynamicHints(),
             GoDynamicHints(),
             RustDynamicHints(),
         ]
@@ -132,9 +134,7 @@ class HintRegistry:
 
         try:
             with ThreadPoolExecutor(max_workers=self._max_workers) as pool:
-                futures = {
-                    pool.submit(self._run_one, ex, repo_root): ex for ex in self._extractors
-                }
+                futures = {pool.submit(self._run_one, ex, repo_root): ex for ex in self._extractors}
                 for future in as_completed(futures):
                     ex = futures[future]
                     try:

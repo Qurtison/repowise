@@ -14,6 +14,7 @@ from .erlang import resolve_erlang_import
 from .fsharp import resolve_fsharp_import
 from .generic import resolve_generic_import
 from .go import resolve_go_import
+from .godot import resolve_godot_import
 from .haskell import resolve_haskell_import
 from .html import resolve_html_asset
 from .java import resolve_java_import
@@ -54,6 +55,10 @@ _RESOLVERS: dict[str, ResolverFn] = {
     "php": resolve_php_import,
     # source ./lib.sh + the $SCRIPT_DIR/$(dirname "$0") idioms.
     "shell": resolve_shell_import,
+    # res:// is project-root absolute, so a script's preload() and a scene's
+    # [ext_resource path=…] resolve through exactly the same rule.
+    "gdscript": resolve_godot_import,
+    "godot_resource": resolve_godot_import,
     # Lightweight regex-tier resolvers (import_support="partial")
     "elixir": resolve_elixir_import,
     "dart": resolve_dart_import,

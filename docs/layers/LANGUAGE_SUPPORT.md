@@ -25,7 +25,7 @@ produce meaningful output.
 | **Shell** | `.sh` `.bash` `.zsh` | Function definitions as symbols, `source` / `.` import edges (incl. `$SCRIPT_DIR` / `dirname` / `$BATS_ROOT` idioms), and function-level code-health complexity (CCN, nesting, cognitive). No class metrics, heritage, bindings, or dead-code flagging |
 | **Config / data** | OpenAPI · Protobuf · GraphQL · Dockerfile · Makefile · YAML · JSON · TOML · Terraform · Markdown | In the file tree and wiki; special handlers extract endpoints / targets where applicable |
 | **Lightweight** | Elixir · Clojure · Haskell · Lean 4 · Erlang · F# · HTML | File-level import graph only (no symbols/calls). Honest file-to-file dependencies, no symbol-level claims |
-| **Partial** | Luau / Roblox | AST symbols + `require()` resolution (Rojo / `.luaurc` aware); no health markers yet |
+| **Partial** | Luau / Roblox · GDScript / Godot | Luau: AST symbols + `require()` resolution (Rojo / `.luaurc` aware). GDScript: AST symbols, `res://` import resolution, heritage, calls, `##` doc comments, plus `.tscn` / `.tres` / `project.godot` resource edges. No health markers yet for either |
 | **Structural** | Objective-C · R · Zig · Julia · Elm · OCaml · Crystal · Nim · D | Git history only (blame, hotspots, co-change). No AST parsing |
 
 **Pipeline stage coverage:**
@@ -233,6 +233,36 @@ capture are wired. Import resolution handles string literals, `script` relative
 instance paths (including `:WaitForChild` idioms), absolute Roblox paths via
 Rojo's `default.project.json`, and `@alias` requires via `.luaurc`. No health
 markers yet.
+
+**GDScript / Godot** (`.gd`, plus `.tscn` / `.tres` / `project.godot`), a .gd
+file is a class: `class_name` names it, and a script that declares none gets a
+synthetic class named after the file the way Godot itself names it
+(`enemy_spawner.gd` → `EnemySpawner`). Functions, signals, enums, consts and
+script-scope vars become symbols; `##` doc comments become docstrings;
+`extends` becomes a heritage edge, including the `extends "res://base.gd"`
+path form, with Godot's own base classes filtered out so only edges to repo
+files remain.
+
+Import resolution is exact rather than heuristic — `res://` is the directory
+holding `project.godot`, so `preload()`, `load()`, `change_scene_to_file()` and
+`extends "res://…"` are a prefix swap and a path lookup. Repos holding the game
+in a subdirectory, or several projects side by side, resolve per project.
+`uid://` handles are recorded as external rather than guessed at; the same
+`[ext_resource]` line always carries the literal path, and that one resolves.
+
+The resource format is parsed rather than passed through, because it is where
+a Godot project's wiring lives: `[ext_resource]` is what attaches a script to a
+node and nests one scene in another, `[connection signal=… method=…]` is what
+calls a handler no GDScript source ever calls, and `project.godot`'s
+`[autoload]` section both defines a global identifier and names the script
+behind it. A dynamic-hint extractor closes the last gap — a script writing
+`GameState.score` with no import at all gets a `dynamic_uses` edge to the
+autoload's script. Godot's engine callbacks (`_ready`, `_process`, `_input`, …)
+are registered as contract methods, so they are never reported as dead.
+
+The grammars are not published to PyPI, so they ship in an optional extra:
+`uv pip install '.[godot]'`. Without it `.gd` and `.tscn` files are still
+recognised, counted and coloured — they simply carry no symbols.
 
 **Shell** (`.sh` / `.bash` / `.zsh`), function definitions (both `foo()` and
 `function foo` forms) become symbols, `source` / `.` statements become import

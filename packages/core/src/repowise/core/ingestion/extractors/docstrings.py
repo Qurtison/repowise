@@ -214,6 +214,46 @@ def extract_module_docstring(root: Node, src: str, lang: str) -> str | None:
         if triple_dash_lines:
             return "\n".join(triple_dash_lines)
 
+    elif lang == "gdscript":
+        # Godot's doc comment is ``##``; a single ``#`` is an ordinary comment
+        # and must not be picked up. The script's docstring may sit either
+        # side of ``class_name``/``extends``, so those are skipped rather than
+        # treated as the end of the header.
+        #
+        # Adjacency is what separates the script's docstring from the first
+        # member's. Both sit at file scope directly after the header, and only
+        # the blank line tells them apart::
+        #
+        #     extends Node
+        #     ## The script's docstring.      <- touches the header
+        #
+        #     ## The variable's docstring.    <- separated by a blank line
+        #     var score := 0
+        #
+        # ``extract_symbol_docstring`` applies the same rule from the other
+        # side, so exactly one of the two claims any given comment run.
+        doc_lines: list[str] = []
+        prev_end_line = 0  # 1-based; 0 = nothing seen yet
+        for child in root.children:
+            if child.type == "comment":
+                text = node_text(child, src).strip()
+                if not text.startswith("##"):
+                    break
+                start_line = child.start_point[0] + 1
+                if doc_lines or prev_end_line == 0 or start_line - prev_end_line <= 1:
+                    doc_lines.append(text[2:].strip())
+                    prev_end_line = child.end_point[0] + 1
+                    continue
+                break  # blank line before it — this belongs to what follows
+            if child.type in ("class_name_statement", "extends_statement", "annotations"):
+                if doc_lines:
+                    break
+                prev_end_line = child.end_point[0] + 1
+                continue
+            break
+        if doc_lines:
+            return "\n".join(doc_lines)
+
     return None
 
 
@@ -351,6 +391,50 @@ def extract_symbol_docstring(def_node: Node, src: str, lang: str) -> str | None:
             else:
                 break
         return "\n".join(lines) if lines else None
+
+    elif lang == "gdscript":
+        # ``## Doc line`` above the declaration; a single ``#`` is an ordinary
+        # comment and is not documentation in Godot.
+        #
+        # The script's own ``##`` header sits at file scope too, directly
+        # above whatever member happens to come first. Walking back blindly
+        # would hand the module docstring to that member, so a run of comments
+        # with nothing but class_name/extends before it is left alone —
+        # extract_module_docstring already owns it.
+        parent = def_node.parent
+        if parent is None:
+            return None
+        siblings = list(parent.children)
+        idx = next((i for i, s in enumerate(siblings) if s.id == def_node.id), -1)
+        if idx <= 0:
+            return None
+
+        lines: list[str] = []
+        i = idx - 1
+        while i >= 0 and siblings[i].type == "comment":
+            text = node_text(siblings[i], src).strip()
+            if not text.startswith("##"):
+                break
+            lines.insert(0, text[2:].strip())
+            i -= 1
+        if not lines:
+            return None
+
+        header_only = all(
+            siblings[j].type in ("class_name_statement", "extends_statement", "annotations")
+            for j in range(i + 1)
+        )
+        if header_only:
+            # Only the script's own header precedes this run, so it is the
+            # script's docstring — unless a blank line separates the two, in
+            # which case it documents this symbol. Same rule, same direction,
+            # as extract_module_docstring.
+            touches_header = i < 0 or (
+                siblings[i + 1].start_point[0] - siblings[i].end_point[0] <= 1
+            )
+            if touches_header:
+                return None
+        return "\n".join(lines)
 
     return None
 

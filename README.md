@@ -370,6 +370,7 @@ Set Up This Repository**. Guide: **[docs/agent/VSCODE.md →](docs/agent/VSCODE.
   <img src="https://img.shields.io/badge/Dart-0175C2?style=flat-square&logo=dart&logoColor=white" alt="Dart" />
   &nbsp;<strong>· Partial &nbsp;</strong>
   <img src="https://img.shields.io/badge/Luau-00A2FF?style=flat-square&logo=lua&logoColor=white" alt="Luau" />
+  <img src="https://img.shields.io/badge/GDScript-355570?style=flat-square&logo=godotengine&logoColor=white" alt="GDScript" />
 </p>
 
 SQL and dbt projects get real `ref()` / `source()` lineage, shell scripts get

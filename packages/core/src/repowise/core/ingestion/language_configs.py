@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from .extractors.visibility import (
     csharp_visibility,
     dart_visibility,
+    gdscript_visibility,
     go_visibility,
     java_visibility,
     kotlin_visibility,
@@ -362,6 +363,45 @@ LANGUAGE_CONFIGS: dict[str, LanguageConfig] = {
             "function_definition": "function",
         },
         import_node_types=["command"],  # `source` / `.` — see queries/shell.scm
+        export_node_types=[],
+        visibility_fn=public_by_default,
+        parent_extraction="none",
+        parent_class_types=frozenset(),
+    ),
+    "gdscript": LanguageConfig(
+        symbol_node_types={
+            # ``class_name Enemy`` names the script's own class; a bare
+            # ``class Inner:`` is a nested one. Scripts declaring neither get
+            # their class symbol from synthetic_symbols/gdscript_script.py.
+            "class_name_statement": "class",
+            "class_definition": "class",
+            "function_definition": "function",  # → method inside class_definition
+            "enum_definition": "enum",
+            "const_statement": "constant",
+            # Refined in the parser like Python's assignments: SCREAMING_CASE
+            # reads as a constant, anything else stays a variable.
+            "variable_statement": "variable",
+            # A signal is dispatched by name from GDScript (``died.emit()``)
+            # and from scene files ([connection signal="died" …]). Modelling
+            # it as callable is what lets both of those resolve onto it.
+            "signal_statement": "function",
+        },
+        # GDScript has no import statement — preload()/load()/extends "res://"
+        # carry every file dependency. See queries/gdscript.scm.
+        import_node_types=["call", "attribute", "extends_statement"],
+        export_node_types=[],
+        visibility_fn=gdscript_visibility,
+        parent_extraction="nesting",
+        parent_class_types=frozenset({"class_definition"}),
+    ),
+    "godot_resource": LanguageConfig(
+        # Data, not code: the only declaration the format carries is an
+        # autoload, which mints a global identifier every .gd file can name
+        # without importing it. Everything else in a scene is an edge.
+        symbol_node_types={
+            "property": "constant",
+        },
+        import_node_types=["section"],  # [ext_resource] / [autoload]
         export_node_types=[],
         visibility_fn=public_by_default,
         parent_extraction="none",

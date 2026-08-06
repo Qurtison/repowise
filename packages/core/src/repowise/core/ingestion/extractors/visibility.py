@@ -27,6 +27,18 @@ def py_visibility(name: str, _mods: list[str]) -> str:
     return "public"
 
 
+def gdscript_visibility(name: str, _mods: list[str]) -> str:
+    """GDScript: a leading underscore is the only privacy convention.
+
+    Godot's own engine callbacks (``_ready``, ``_process``, ``_input``) share
+    that spelling, and they are private in exactly the sense meant here — no
+    other script calls them, the engine does. Their *reachability* is a
+    separate question, answered by the contract-method list in the dead-code
+    analyzer rather than by visibility.
+    """
+    return "private" if name.startswith("_") else "public"
+
+
 def ts_visibility(_name: str, mods: list[str]) -> str:
     mods_lower = [m.lower() for m in mods]
     if "private" in mods_lower:

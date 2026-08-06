@@ -38,6 +38,11 @@ LanguageTag = Literal[
     "scala",
     "luau",
     "dart",
+    "gdscript",
+    # Godot's .tscn / .tres / project.godot format. Not code, but parsed
+    # rather than passed through: it carries the script-to-node and
+    # scene-to-scene wiring that makes a Godot project a graph at all.
+    "godot_resource",
     # Passthrough code languages (no AST parser yet — empty ParsedFile,
     # files enter the graph via the generic resolver). Before these tags
     # existed the traverser silently skipped such files as unknown, so e.g.

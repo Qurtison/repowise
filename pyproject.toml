@@ -101,6 +101,20 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Godot grammars. Neither is published to PyPI, so they are direct git
+# references and cannot live in `dependencies` — a published sdist/wheel may
+# not carry direct URLs. Installing the extra is what turns .gd and
+# .tscn/.tres/project.godot from recognised-but-unparsed into full symbol and
+# resource-edge extraction; `_build_language_registry` already degrades
+# cleanly when a grammar package is missing, so a plain install is unaffected.
+#
+#     uv pip install '.[godot]'
+#
+# Both build a small C extension at install time, so a compiler is required.
+godot = [
+    "tree-sitter-gdscript @ git+https://github.com/PrestonKnopp/tree-sitter-gdscript",
+    "tree-sitter-godot-resource @ git+https://github.com/PrestonKnopp/tree-sitter-godot-resource",
+]
 postgres = [
     "pgvector>=0.3,<1",
     "asyncpg>=0.29,<1",

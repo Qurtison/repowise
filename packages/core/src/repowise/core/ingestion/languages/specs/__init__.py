@@ -24,7 +24,9 @@ from .elixir import SPEC as _ELIXIR
 from .elm import SPEC as _ELM
 from .erlang import SPEC as _ERLANG
 from .fsharp import SPEC as _FSHARP
+from .gdscript import SPEC as _GDSCRIPT
 from .go import SPEC as _GO
+from .godot_resource import SPEC as _GODOT_RESOURCE
 from .graphql import SPEC as _GRAPHQL
 from .haskell import SPEC as _HASKELL
 from .html import SPEC as _HTML
@@ -91,6 +93,13 @@ ALL_SPECS: tuple[LanguageSpec, ...] = (
     _SWIFT,
     _SCALA,
     _DART,
+    _GDSCRIPT,
+    # Not code, but parsed rather than passed through: a scene's
+    # [ext_resource] is what attaches a script to a node, so without it
+    # every .gd file in the project reads as an orphan. Placed after
+    # _GDSCRIPT — the two share project.godot as a manifest, and the pair
+    # reads in the order a Godot project is understood.
+    _GODOT_RESOURCE,
     # -----------------------------------------------------------------
     # Config / data / markup languages (passthrough — no AST)
     # -----------------------------------------------------------------

@@ -226,6 +226,42 @@ _DYNAMIC_IMPORT_MARKERS: dict[str, tuple[str, ...]] = {
         "//go:embed",
         "//go:linkname",
     ),
+    # Godot resolves a great deal at runtime, and the idioms are ordinary
+    # game code rather than escape hatches: a resource path built from a
+    # variable, a method reached through ``call()``/``Callable``, a node
+    # fetched by string path, a signal connected by name. Any of these in a
+    # script means its neighbours may be reached in ways the static graph
+    # cannot observe.
+    ".gd": (
+        "load(",
+        "ResourceLoader.load",
+        "change_scene_to_file(",
+        "change_scene_to_packed(",
+        ".call(",
+        ".callv(",
+        "call_deferred(",
+        "Callable(",
+        "has_method(",
+        "get_node(",
+        "find_child(",
+        "ClassDB.instantiate(",
+        "Engine.get_singleton(",
+        "instance_from_id(",
+        "set_script(",
+    ),
+    # A scene wires scripts, sub-scenes and signal handlers by string. Those
+    # references ARE extracted statically (queries/godot_resource.scm), but a
+    # scene is itself loaded by path at runtime, so nothing in the tree it
+    # anchors should read as confidently dead.
+    ".tscn": (
+        "ExtResource(",
+        "SubResource(",
+        "[connection",
+    ),
+    ".tres": (
+        "ExtResource(",
+        "SubResource(",
+    ),
     ".swift": (
         "NSClassFromString(",
         "Selector(",

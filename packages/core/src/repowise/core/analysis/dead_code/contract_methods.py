@@ -18,6 +18,9 @@ Currently covers:
   ``GetIDsOfNames``, ``Invoke``, etc.). They never appear as static
   callers in C# / C++ COM-interop code because the runtime resolves
   the vtable slot.
+* **Godot engine callbacks** — ``_ready``, ``_process``, ``_input`` and the
+  rest are invoked by the engine's main loop and notification dispatch. In a
+  game project they are frequently a script's entire content.
 
 Extend this list (and the matching helper) when other reserved-name
 patterns surface — e.g. WinRT activation factories, .NET ``ToString``
@@ -181,6 +184,76 @@ _CPP_CONTRACT_METHOD_NAMES: frozenset[str] = frozenset({
 _CPP_LANGUAGES: frozenset[str] = frozenset({"cpp", "c"})
 
 
+# Godot engine callbacks. Every one of these is invoked by the engine's own
+# main loop, notification dispatch, or property system — never by a static
+# call from another script. They are also the *entire* content of a great
+# many Godot scripts, so without this list an ordinary game reads as if
+# almost every file in it were dead.
+#
+# Godot names them with a leading underscore, which is also GDScript's
+# privacy convention (see ``gdscript_visibility``), so the private-symbol
+# detector reaches them and nothing else would stop it.
+_GDSCRIPT_CONTRACT_METHOD_NAMES: frozenset[str] = frozenset({
+    # Node lifecycle
+    "_init",
+    "_ready",
+    "_enter_tree",
+    "_exit_tree",
+    "_process",
+    "_physics_process",
+    "_notification",
+    # Input
+    "_input",
+    "_unhandled_input",
+    "_unhandled_key_input",
+    "_shortcut_input",
+    "_gui_input",
+    # CanvasItem / rendering
+    "_draw",
+    # Object property system (inspector plugins, custom resources)
+    "_get",
+    "_set",
+    "_get_property_list",
+    "_property_can_revert",
+    "_property_get_revert",
+    "_validate_property",
+    "_to_string",
+    # Control layout & interaction
+    "_get_minimum_size",
+    "_get_drag_data",
+    "_can_drop_data",
+    "_drop_data",
+    "_make_custom_tooltip",
+    "_has_point",
+    "_structured_text_parser",
+    # Custom Resource / Node scripting hooks
+    "_get_configuration_warnings",
+    "_setup_local_to_scene",
+    # Physics integration
+    "_integrate_forces",
+    # Editor plugin contract
+    "_enter_editor",
+    "_exit_editor",
+    "_handles",
+    "_edit",
+    "_make_visible",
+    "_get_plugin_name",
+    "_get_plugin_icon",
+    "_forward_canvas_gui_input",
+    "_forward_3d_gui_input",
+    # Multiplayer
+    "_get_multiplayer_authority",
+})
+
+# Signal handlers wired from a scene's ``[connection]`` line follow Godot's
+# ``_on_<node>_<signal>`` naming. Scene files ARE parsed, so a handler wired
+# there usually has a real call edge — this prefix covers the ones connected
+# in code through a ``Callable`` the graph cannot follow.
+_GDSCRIPT_HANDLER_PREFIX = "_on_"
+
+_GDSCRIPT_LANGUAGES: frozenset[str] = frozenset({"gdscript"})
+
+
 def is_contract_method(sym_name: str, sym_kind: str | None, language: str | None) -> bool:
     """Return True if *sym_name* is a reserved contract-method name in *language*.
 
@@ -215,5 +288,10 @@ def is_contract_method(sym_name: str, sym_kind: str | None, language: str | None
         # Generic conversion operator: ``operator Foo`` where ``Foo`` is
         # a user type. The prefix is sufficient evidence.
         if sym_name.startswith("operator "):
+            return True
+    if language in _GDSCRIPT_LANGUAGES:
+        if sym_name in _GDSCRIPT_CONTRACT_METHOD_NAMES:
+            return True
+        if sym_name.startswith(_GDSCRIPT_HANDLER_PREFIX):
             return True
     return False
